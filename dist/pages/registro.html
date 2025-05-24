@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Registro de Usuario</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            background: #f5f6fa;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            background: #fff;
+            padding: 2.5rem 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+            width: 350px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h2 {
+            margin-bottom: 1.5rem;
+            color: #333;
+        }
+        form {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        input[type="text"], input[type="password"], input[type="email"] {
+            padding: 0.7rem;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+        button[type="submit"] {
+            padding: 0.7rem;
+            background: #1976d2;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button[type="submit"]:hover {
+            background: #1565c0;
+        }
+        .mensaje {
+            margin-top: 1rem;
+            color: #1976d2;
+            font-weight: bold;
+            text-align: center;
+        }
+        .volver {
+            margin-top: 1.5rem;
+            color: #1976d2;
+            text-decoration: none;
+            font-size: 0.97em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Registro de Usuario</h2>
+        <form id="registroForm" autocomplete="off">
+            <input type="text" id="usuario" name="usuario" placeholder="Usuario" required>
+            <input type="email" id="email" name="email" placeholder="Correo electrónico" required>
+            <input type="password" id="password" name="password" placeholder="Contraseña" required>
+            <button type="submit">Registrarse</button>
+        </form>
+        <div class="mensaje" id="mensaje"></div>
+        <a class="volver" href="index.html">¿Ya tienes cuenta? Inicia sesión</a>
+    </div>
+    <script>
+        document.getElementById('registroForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const usuario = document.getElementById('usuario').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            fetch('guardar_usuario.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ usuario, email, password })
+            })
+            .then(res => res.json())
+            .then(data => {
+                const mensaje = document.getElementById('mensaje');
+                if (data.success) {
+                    mensaje.textContent = '¡Registro exitoso! Ahora puedes iniciar sesión.';
+                    mensaje.style.color = '#1976d2';
+                } else {
+                    mensaje.textContent = 'Error: ' + (data.error || 'No se pudo registrar');
+                    mensaje.style.color = 'red';
+                }
+            })
+            .catch(() => {
+                document.getElementById('mensaje').textContent = 'Error de conexión con el servidor';
+            });
+        });
+    </script>
+</body>
+</html>
