@@ -6,6 +6,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Google Identity Services -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <!-- Facebook SDK -->
+    <script async defer crossorigin="anonymous" src="https://connect.facebook.net/es_ES/sdk.js"></script>
+    <script>
+        window.fbAsyncInit = function() {
+            FB.init({
+                appId      : '1369717527586608', // Reemplaza con tu App ID de Facebook
+                cookie     : true,
+                xfbml      : true,
+                version    : 'v19.0'
+            });
+        };
+    </script>
     <style>
         body {
             background: #f5f6fa;
@@ -127,6 +139,28 @@
             font-size: 0.9em;
             height: 1.2em;
         }
+        #facebookLogin {
+            background: #4267B2;
+            color: #fff;
+            margin-top: 0.5rem;
+            border: none;
+            border-radius: 6px;
+            padding: 0.7rem;
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: background 0.2s;
+        }
+        #facebookLogin:hover {
+            background: #365899;
+        }
+        #facebookLogin img {
+            width: 20px;
+            height: 20px;
+        }
     </style>
 </head>
 <body>
@@ -136,6 +170,9 @@
             <input type="text" id="usuario" name="usuario" placeholder="Usuario" required>
             <input type="password" id="password" name="password" placeholder="Contraseña" required>
             <button type="submit">Ingresar</button>
+            <button type="button" id="facebookLogin">
+                <img src="https://www.svgrepo.com/show/475647/facebook-color.svg" alt="Facebook"> Ingresar con Facebook
+            </button>
         </form>
         <a href="registro.html" style="margin-top:1rem; color:#1976d2; text-decoration:none; font-size:0.97em;">
             ¿No tienes cuenta? Regístrate aquí
@@ -213,6 +250,78 @@
                 alert('Error de conexión con el servidor');
             });
         });
+
+        // Facebook Login
+        document.getElementById('facebookLogin').onclick = function() {
+            FB.login(function(response) {
+                if (response.authResponse) {
+                    FB.api('/me', {fields: 'name,email,picture'}, function(profile) {
+                        const email = profile.email || '';
+                        const nombre = profile.name || '';
+                        const foto = profile.picture && profile.picture.data ? profile.picture.data.url : '';
+
+                        // Verificar si el correo ya existe en la base de datos
+                        fetch('existe_usuario.php', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email })
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.exists) {
+                                // Si existe, dejar entrar directamente
+                                const token = btoa(email + ':' + Date.now());
+                                localStorage.setItem('token', token);
+                                localStorage.setItem('usuario', email);
+                                localStorage.setItem('email', email);
+                                localStorage.setItem('foto', foto || '');
+                                window.location.href = 'index2.html';
+                            } else {
+                                // Si no existe, mostrar modal para pedir nombre de usuario
+                                document.getElementById('modalUsuario').style.display = 'flex';
+                                document.getElementById('btnGuardarUsuario').onclick = function() {
+                                    const usuario = document.getElementById('nuevoUsuario').value.trim();
+                                    const errorDiv = document.getElementById('errorUsuario');
+                                    if (!usuario) {
+                                        errorDiv.textContent = 'Debes ingresar un nombre de usuario.';
+                                        return;
+                                    }
+                                    errorDiv.textContent = '';
+
+                                    // Enviar a guardar_usuario.php
+                                    fetch('guardar_usuario.php', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ usuario, email, password: '' })
+                                    })
+                                    .then(res => res.json())
+                                    .then(data => {
+                                        if (data.success) {
+                                            const token = btoa(email + ':' + Date.now());
+                                            localStorage.setItem('token', token);
+                                            localStorage.setItem('usuario', usuario);
+                                            localStorage.setItem('email', email);
+                                            localStorage.setItem('foto', foto || '');
+                                            window.location.href = 'index2.html';
+                                        } else {
+                                            errorDiv.textContent = 'Error al registrar usuario: ' + (data.error || 'Intenta con otro nombre');
+                                        }
+                                    })
+                                    .catch(() => {
+                                        errorDiv.textContent = 'Error de conexión con el servidor';
+                                    });
+                                };
+                            }
+                        })
+                        .catch(() => {
+                            alert('Error de conexión con el servidor');
+                        });
+                    });
+                } else {
+                    alert('No se pudo iniciar sesión con Facebook');
+                }
+            }, {scope: 'public_profile,email'});
+        };
 
         // Google Sign-In callback
         function handleCredentialResponse(response) {
